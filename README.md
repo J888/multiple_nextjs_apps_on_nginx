@@ -1,7 +1,9 @@
 # Multiple NextJS Apps on One Server
-The goal is to server multiple NextJS apps that are running on different ports and each should be accessible from a different domain name.
+Goals:
+- Serve multiple NextJS apps, each running on different ports
+- Allow each to be accessed from different domain names.
 
-# Install Nginx on Ubuntu on Raspberry Pi
+# Nginx on Ubuntu on Raspberry Pi
 
 Instead of paying for a server to play with, I set up nginx on a Raspberry Pi 4.
 
@@ -13,13 +15,17 @@ You can get your Raspberry Pi ip address by connecting it to a display and loggi
 
 e.g. `192.168.4.205`
 
-```sh
-# Make sure your ssh connection does not time out
+## Make sure your ssh connection does not time out
 
+I ran into an issue where the ssh connection froze up and would not let me back in, and this fixed it:
+
+```sh
 sudo vi /etc/ssh/sshd_config
 # Add this to the bottom of the file
 IPQoS cs0 cs0
 ```
+
+## Install Nginx
 
 [Guide followed](https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-16-04).
 
@@ -63,6 +69,7 @@ I followed [this](https://www.digitalocean.com/community/tutorials/how-to-set-up
 
 # How is it working?
 
+I think this is how it works:
 1. When you hit example.com, the local host system redirects your request to the ip address you set in /etc/hosts.
 2. Nginx sees the host name in the request and looks at the configured server blocks. It finds a match by looking at the configuration located at `/etc/nginx/sites-enabled/example.com`:
 
@@ -85,9 +92,9 @@ server {
 
 # NextJS is a little different..
 
-NextJS is not just html files. It does *have* static files but it's also a live Node application that we'll proxy with Nginx.
+NextJS apps are not just html files. They *do have* static files, but NodeJS is running as a process and is doing calculations and things.
 
-In other words, nginx will just pass along the request to the Next app and return the response to the client (except for `.next/static`)
+In other words, nginx will just pass along the request to the Next app (running a NodeJS process) and return the response to the client (except for `.next/static`)
 
 I referred to this gist, https://gist.github.com/iam-hussain/2ecdb934a7362e979e3aa5a92b181153 for how to do this. It was extremely helpful. I tweaked it a little bit because some things weren't working.
 
@@ -102,7 +109,7 @@ location /_next/static {
 
 ### Reverse Proxy
 
-I love and hate fancy developer language. Here's a good explanation from wikipedia:
+I love and hate fancy developer language like "Reverse Proxy". Here's a simple explanation from wikipedia:
 
 > In computer networks, a reverse proxy is the application that sits in front of back-end applications and forwards client (e.g. browser) requests to those applications. Reverse proxies help increase scalability, performance, resilience and security. The resources returned to the client appear as if they originated from the web server itself.
 - https://en.wikipedia.org/wiki/Reverse_proxy
@@ -142,11 +149,11 @@ server {
 }
 ```
 
+### Issue 1: There were manifest files that were 404-ing
+
 THANK YOU to this guy for pointing out that some files in the static directory are not really files, they're things that Next builds at runtime: https://stackoverflow.com/a/71754572
 
-### I was getting 403 errors for anything in `./next/static`
-
-
+### Issue 2: I was getting 403 errors for anything in `./next/static`
 
 ```sh
 # I'm not sure if this was needed. I did it somewhere along the way and eventually things were fixed.
@@ -161,7 +168,9 @@ user <YOUR_USER>;
 ```
 
 
-### Enabling the site
+### Enabling the site by "Symbolic Link"-ing one directory to another
+
+I don't *really* get why the Digital Ocean guide did it this way, but I'm just doing it the way they did.
 
 Create Sym-Link, Then Restart NGINX
 
@@ -190,5 +199,5 @@ Then add this line at the end:
 <YOUR_RPi_Ip_Address> <FAKE_HOST_NAME>.com www.<FAKE_HOST_NAME>.com
 
 # e.g. for me this line ended up being:
-# 192.168.4.205 infosite.com www. infosite.com
+# 192.168.4.205 infosite.com www.infosite.com
 ```
